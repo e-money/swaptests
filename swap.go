@@ -2,8 +2,6 @@ package main
 
 import (
 	"crypto/ecdsa"
-	"crypto/sha256"
-	"encoding/binary"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -46,53 +44,8 @@ const (
 	timeSpan           = 3 * 86400 // seconds
 )
 
-var (
-	// key for ethSenderAddr above. runtime arg
-	ethPrvKey    *ecdsa.PrivateKey
-	randomNumber = []byte("0xaabbccddaabbccddaabbccddaabbccddaabbccddaabbccddaabbccddaabbccdd")
-)
-
-func assertNoError(err error, msg string) {
-	if err == nil {
-		return
-	}
-
-	if len(msg) == 0 {
-		msg = "assertNoError failed"
-	}
-
-	panic(fmt.Sprintf("%s: %s", msg, err))
-}
-
-func assertEq(v1, v2, msg string) {
-	if v1 == v2 {
-		return
-	}
-	if len(msg) == 0 {
-		msg = "assertEq failed"
-	}
-
-	panic(fmt.Sprintf("%s: %s != %s", msg, v1, v2))
-}
-
-func CalculateRandomHash(randomNumber []byte, timestamp int64) common.Hash {
-	randomNumberAndTimestamp := make([]byte, RandomNumberLength+8)
-	copy(randomNumberAndTimestamp[:RandomNumberLength], randomNumber)
-	binary.BigEndian.PutUint64(randomNumberAndTimestamp[RandomNumberLength:], uint64(timestamp))
-	res := sha256.Sum256(randomNumberAndTimestamp)
-	return res
-}
-
-func deriveAddressFromKey(privKey *ecdsa.PrivateKey) common.Address {
-	publicKey := privKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		panic("public key error")
-	}
-
-	address := crypto.PubkeyToAddress(*publicKeyECDSA)
-	return address
-}
+// key for ethSenderAddr above. runtime arg
+var ethPrvKey *ecdsa.PrivateKey
 
 func printUsage() {
 	fmt.Println("usage: ./swap -ethkey 23423d....")
@@ -126,7 +79,7 @@ func testSwap() error {
 	e := newEthFacade(testnetUrl, common.HexToAddress(swapContractAddr), common.HexToAddress(tokenContractAddr))
 
 	timestamp := time.Now().Unix()
-	randomHash := CalculateRandomHash(randomNumber, timestamp)
+	randomHash := genRandomHash(randomNumber)
 
 	ethSwapID, err := e.calcSwapId(randomHash, ethSenderAddr, emSenderAddr)
 	assertNoError(err, "e.calcSwapId()")

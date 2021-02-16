@@ -1,17 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/ava-labs/coreth"
-	"github.com/ava-labs/coreth/core/types"
 	"github.com/btcsuite/btcutil/bech32"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/e-money/swaptests/avaabi"
@@ -58,15 +55,14 @@ func newEthFacade(provider string, contractAddr, tokenContractAddr common.Addres
 }
 
 func (e *ethFacade) crEthTrx(timestamp int64, randomHash common.Hash) (string, error) {
-	// ethSwapId := calculateSwapID(randomHash[:], common.FromHex(ethSenderAddr), common.FromHex(emSenderAddr))
 	trxHash, cmnErr := e.HTLT(
 		randomHash,
 		timestamp,
 		timeSpan,
 
 		ethRecipientAddr, // runtime key provided
-		emSenderAddr,
-		emUserAddr, // constant address, no key is needed
+		emSenderAddr,     // constant address no key is needed
+		emUserAddr,       //   ~~~
 
 		big.NewInt(1))
 	if cmnErr != nil {
@@ -160,10 +156,6 @@ func (e *ethFacade) HTLT(randomNumberHash common.Hash, timestamp, timeSpan int64
 
 	bep2SenderAddr, err := bech32Bytes(otherChainSenderAddr)
 	assertNoError(err, fmt.Sprintf("bech32Bytes(otherChainSenderAddr) %s", otherChainSenderAddr))
-
-	// Ongoing experiment with Avalanche's async block
-	// call indirect gas estimate by doing an approval
-	// first before the HTLT creation
 
 	//instanceERC20, err := avaabi.NewIERC20(ethfacade.TokenContractAddr, ethfacade.Client)
 	//if err != nil {
@@ -332,48 +324,4 @@ func (e *ethFacade) getLogs(blockHash common.Hash) error {
 		}
 	}
 	return nil
-}
-
-type HTLTEvent struct {
-	MsgSender        common.Address
-	RecipientAddr    common.Address
-	SwapId           common.Hash
-	RandomNumberHash common.Hash
-	Timestamp        uint64
-	Bep2Addr         common.Address
-	ExpireSeconds    *big.Int
-	OutAmount        *big.Int
-	Bep2Amount       *big.Int
-}
-
-func parseHTLTEvent(abi *abi.ABI, log *types.Log) (*HTLTEvent, error) {
-	var ev HTLTEvent
-
-	err := abi.Unpack(&ev, "HTLT", log.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	ev.MsgSender = common.BytesToAddress(log.Topics[1].Bytes())
-	ev.RecipientAddr = common.BytesToAddress(log.Topics[2].Bytes())
-	ev.SwapId = common.BytesToHash(log.Topics[3].Bytes())
-
-	fmt.Printf("sender addr: %s\n", ev.MsgSender.String())
-	fmt.Printf("receiver addr: %s\n", ev.RecipientAddr.String())
-	fmt.Printf("swap id: %s\n", hex.EncodeToString(ev.SwapId[:]))
-	fmt.Printf("random number hash: %s\n", hex.EncodeToString(ev.RandomNumberHash[:]))
-	fmt.Printf("bep2 addr: %s\n", hex.EncodeToString(ev.Bep2Addr[:]))
-	fmt.Printf("timestamp: %d\n", ev.Timestamp)
-	fmt.Printf("expire time: %d\n", ev.ExpireSeconds)
-	fmt.Printf("erc20 amount: %d\n", ev.OutAmount)
-	fmt.Printf("bep2 amount: %d\n", ev.Bep2Amount)
-	return &ev, nil
-}
-
-func parseAvaEvent(abi *abi.ABI, log *types.Log) (*HTLTEvent, error) {
-	if bytes.Equal(log.Topics[0][:], HTLTEventHash[:]) {
-		return parseHTLTEvent(abi, log)
-	}
-
-	return nil, nil
 }
