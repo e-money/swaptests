@@ -4,7 +4,7 @@ Demonstrating a failed swap transaction in testnet
 ### When created answering to queries (see below)
 ![Image of created block](./stage1.png)
 ### eventually reverting
-![Image of turning to reverted trx](./stage1.png)
+![Image of turning to reverted trx](./stage2.png)
 
 ### Build
 
