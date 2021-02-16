@@ -95,7 +95,7 @@ func deriveAddressFromKey(privKey *ecdsa.PrivateKey) common.Address {
 }
 
 func printUsage() {
-	fmt.Print("usage: ./swap -ethkey 23423d....\n")
+	fmt.Println("usage: ./swap -ethkey 23423d....")
 }
 
 func main() {
@@ -137,10 +137,12 @@ func testSwap() error {
 	time.Sleep(2 * time.Second)
 
 	exists, err := e.hasSwap(common.BytesToHash(ethSwapID))
-	if err != nil {
-		fmt.Printf("HasSwap() error:%s\n", err)
-	}
-	fmt.Printf("query eth HasSwap exists %t, swap_id=%s\n", exists, hex.EncodeToString(ethSwapID))
+	assertNoError(err, "e.hasSwap()")
+	fmt.Printf("query eth HasSwap exists %t, swapID:%s\n", exists, hex.EncodeToString(ethSwapID))
+
+	swap, err := e.getSwap(common.BytesToHash(ethSwapID))
+	assertNoError(err, "e.getSwap()")
+	fmt.Printf("getSwap() error:%v\n", swap)
 
 	trxStatus, blockNum, err := e.getTrxReceiptStatus(trxHash)
 	assertNoError(err, "e.getTrxReceiptStatus()")
