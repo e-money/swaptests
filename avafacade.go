@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"math/big"
 	"strings"
@@ -17,11 +16,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	HTLTEventHash   = common.HexToHash("0xb3e26d98380491276a8dce9d38fd1049e89070230ff5f36ebb55ead64500ade1")
-	ClaimEventHash  = common.HexToHash("0x9f46b1606087bdf4183ec7dfdbe68e4ab9129a6a37901c16a7b320ae11a96018")
-	RefundEventHash = common.HexToHash("0x04eb8ae268f23cfe2f9d72fa12367b104af16959f6a93530a4cc0f50688124f9")
-)
+var HTLTEventHash = common.HexToHash("0xb3e26d98380491276a8dce9d38fd1049e89070230ff5f36ebb55ead64500ade1")
 
 type ethFacade struct {
 	Abi               abi.ABI
@@ -200,46 +195,11 @@ func (e *ethFacade) getTransactor() (*avaabi.TransactOpts, error) {
 	return auth, nil
 }
 
-// Sum returns the SHA256 of the bz.
-func shaHash(bz []byte) []byte {
-	h := sha256.Sum256(bz)
-	return h[:]
-}
-
 func calculateSwapID(randomNumberHash []byte, sender []byte, senderOtherChain []byte) []byte {
 	data := randomNumberHash
 	data = append(data, []byte(sender)...)
 	data = append(data, []byte(senderOtherChain)...)
 	return shaHash(data)
-}
-
-func (e *ethFacade) getBlockAndTxs(height int64) (*BlockAndTxLogs, error) {
-	header, err := e.Client.HeaderByNumber(context.Background(), big.NewInt(height))
-	if err != nil {
-		return nil, err
-	}
-
-	err = e.getLogs(header.Hash())
-	if err != nil {
-		return nil, err
-	}
-
-	return &BlockAndTxLogs{
-		Height:          height,
-		BlockHash:       header.Hash().String(),
-		ParentBlockHash: header.ParentHash.String(),
-		BlockTime:       int64(header.Time),
-	}, nil
-}
-
-func (e *ethFacade) calcEthSwapID(randomNumberHash common.Hash, ethAdminUser, emAdminUser string) (common.Hash, error) {
-	instance, err := avaabi.NewERC20AtomicSwapper(e.SwapContractAddr, e.Client)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return instance.CalSwapID(nil,
-		randomNumberHash, common.HexToAddress(ethAdminUser), common.HexToAddress(emAdminUser))
 }
 
 func (e *ethFacade) calcSwapId(randomNumberHash common.Hash, sender string, senderOtherChain string) ([]byte, error) {
@@ -254,74 +214,4 @@ func (e *ethFacade) calcSwapId(randomNumberHash common.Hash, sender string, send
 	}
 
 	return calculateSwapID(randomNumberHash[:], common.FromHex(sender), bep2Addr[:]), nil
-}
-
-func (e *ethFacade) getTrxReceiptStatus(trxHash string) (uint64, *big.Int, error) {
-	_, isPending, err := e.Client.TransactionByHash(context.Background(), common.HexToHash(trxHash))
-	if err != nil {
-		return 0, nil, err
-	}
-	if isPending {
-		return 0, nil, errors.New("trx pending")
-	}
-
-	txReceipt, err := e.Client.TransactionReceipt(context.Background(), common.HexToHash(trxHash))
-	if err != nil {
-		return 0, nil, err
-	}
-
-	//if txReceipt.Status == types.ReceiptStatusFailed {
-	//	return nil, errors.New("failed sending the trx")
-	//}
-
-	return txReceipt.Status, txReceipt.BlockNumber, nil
-}
-
-func (e *ethFacade) ethBalance(address common.Address) (*big.Int, error) {
-	return e.Client.BalanceAt(context.Background(), address, nil)
-}
-
-func (e *ethFacade) allowance() (*big.Int, error) {
-	instance, err := avaabi.NewIERC20(e.TokenContractAddr, e.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	allowance, err := instance.Allowance(nil, common.HexToAddress(ethSenderAddr), e.SwapContractAddr)
-	return allowance, err
-}
-
-func (e *ethFacade) erc20Balance(address common.Address) (*big.Int, error) {
-	instance, err := avaabi.NewIERC20(e.TokenContractAddr, e.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	balance, err := instance.BalanceOf(nil, address)
-	return balance, err
-}
-
-func (e *ethFacade) getLogs(blockHash common.Hash) error {
-	topics := [][]common.Hash{{ClaimEventHash, HTLTEventHash, RefundEventHash}}
-	// topics := [][]common.Hash{{HTLTEventHash}}
-
-	logs, err := e.Client.FilterLogs(context.Background(), coreth.FilterQuery{
-		BlockHash: &blockHash,
-		Topics:    topics,
-		Addresses: []common.Address{e.SwapContractAddr},
-	})
-	if err != nil {
-		return err
-	}
-
-	for _, log := range logs {
-		event, err := parseAvaEvent(&e.Abi, &log)
-		if err != nil {
-			return fmt.Errorf("parse event log error, er=%s", err)
-		}
-		if event == nil {
-			continue
-		}
-	}
-	return nil
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -45,12 +44,4 @@ func parseHTLTEvent(abi *abi.ABI, log *types.Log) (*HTLTEvent, error) {
 	fmt.Printf("erc20 amount: %d\n", ev.OutAmount)
 	fmt.Printf("amount: %d\n", ev.Bep2Amount)
 	return &ev, nil
-}
-
-func parseAvaEvent(abi *abi.ABI, log *types.Log) (*HTLTEvent, error) {
-	if bytes.Equal(log.Topics[0][:], HTLTEventHash[:]) {
-		return parseHTLTEvent(abi, log)
-	}
-
-	return nil, nil
 }

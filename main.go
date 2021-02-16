@@ -11,7 +11,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	emtypes "github.com/e-money/em-ledger/types"
 	"github.com/ethereum/go-ethereum/common"
-	et "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -86,41 +85,26 @@ func testSwap() error {
 
 	trxHash, err := e.crEthTrx(timestamp, randomHash)
 	assertNoError(err, "HTLT creation failed")
+	fmt.Println("created trx hash:", trxHash)
+	fmt.Println("sleeping 2 seconds...")
 
 	time.Sleep(2 * time.Second)
 
 	exists, err := e.hasSwap(common.BytesToHash(ethSwapID))
 	assertNoError(err, "e.hasSwap()")
-	fmt.Printf("query eth HasSwap exists %t, swapID:%s\n", exists, hex.EncodeToString(ethSwapID))
+	fmt.Printf("query HasSwap() returns %t, for swapID:%s\n", exists, hex.EncodeToString(ethSwapID))
 
 	swap, err := e.getSwap(common.BytesToHash(ethSwapID))
 	assertNoError(err, "e.getSwap()")
-	fmt.Printf("getSwap() error:%v\n", swap)
 
-	trxStatus, blockNum, err := e.getTrxReceiptStatus(trxHash)
-	assertNoError(err, "e.getTrxReceiptStatus()")
-
-	fmt.Printf("height:%d, trx status:%d, suceeded:%t\n", blockNum, trxStatus, trxStatus == et.ReceiptStatusSuccessful)
-
-	ethBal, err := e.ethBalance(common.HexToAddress(ethSenderAddr))
-	assertNoError(err, "ethBalance(ethSender)")
-	fmt.Printf("query eth balance:%d of %s\n", ethBal, ethSenderAddr)
-
-	erc20Allowance, err := e.allowance()
-	assertNoError(err, "allowance()")
-	fmt.Printf("query allowance:%d\n", erc20Allowance)
-
-	erc20Bal, err := e.erc20Balance(common.HexToAddress(ethSenderAddr))
-	assertNoError(err, "erc20Balance()")
-	fmt.Printf("query erc20Balance:%d of %s\n", erc20Bal, ethSenderAddr)
-
-	blockAndTxLogs, err := e.getBlockAndTxs(blockNum.Int64())
-	assertNoError(err, fmt.Sprintf("getblockAndTxs error%s, height=%d", err, blockNum))
-	fmt.Println("blockLogs:", blockAndTxLogs)
-
-	exists, err = e.hasSwap(common.BytesToHash(ethSwapID))
-	assertNoError(err, "hasSwap() 2nd time")
-	fmt.Printf("HasSwap():%t\n", exists)
+	fmt.Println("getSwap() retuns -> swap obj:")
+	fmt.Println("swap.Id", swap.Id.String())
+	fmt.Println("swap.RandomNumberHash", swap.RandomNumberHash.String())
+	fmt.Println("swap.ExpireTimestamp", swap.ExpireTimestamp)
+	fmt.Println("swap.OutAmount", swap.OutAmount.String())
+	fmt.Println("swap.RecipientAddress", swap.RecipientAddress)
+	fmt.Println("swap.RecipientOtherChain", swap.RecipientOtherChain)
+	fmt.Println("swap.SenderAddress", swap.SenderAddress)
 
 	return nil
 }

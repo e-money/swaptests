@@ -53,3 +53,9 @@ func deriveAddressFromKey(privKey *ecdsa.PrivateKey) common.Address {
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 	return address
 }
+
+// Sum returns the SHA256 of the bz.
+func shaHash(bz []byte) []byte {
+	h := sha256.Sum256(bz)
+	return h[:]
+}
