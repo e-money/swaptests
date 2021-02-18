@@ -8,8 +8,6 @@ import (
 	"os"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	emtypes "github.com/e-money/em-ledger/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -67,7 +65,7 @@ func main() {
 
 	assertEq(ethSenderAddr, addr.String(), "runtime arg ethkey not matching ethSenderAddr")
 
-	emtypes.SetNetworkPrefix(sdk.GetConfig())
+	SetNetworkPrefix()
 
 	if err := testSwap(); err != nil {
 		os.Exit(1)

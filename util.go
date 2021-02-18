@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -58,4 +59,10 @@ func deriveAddressFromKey(privKey *ecdsa.PrivateKey) common.Address {
 func shaHash(bz []byte) []byte {
 	h := sha256.Sum256(bz)
 	return h[:]
+}
+
+func SetNetworkPrefix() {
+	config := sdk.GetConfig()
+	config.SetBech32PrefixForAccount("emoney", "pub")
+	config.Seal()
 }
